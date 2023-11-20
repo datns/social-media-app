@@ -1,4 +1,4 @@
-import {INewPost, INewUser} from "@/types";
+import {INewPost, INewUser, IUpdatePost} from "@/types";
 import {account, appwriteConfig, avatars, databases, storage} from "@/lib/appwrite/config.ts";
 import {ID, Query} from "appwrite";
 
@@ -225,4 +225,98 @@ export async function deleteSavedPost(savedRecordId: string) {
 	} catch (e) {
 		console.log(e)
 	}
+}
+
+export async function getPostById(postId: string) {
+	try {
+		const post = await databases.getDocument(
+			appwriteConfig.databaseId,
+			appwriteConfig.postsCollectionId,
+			postId
+		)
+
+		return post;
+	} catch (e) {
+		console.log(e);
+	}
+}
+
+export async function updatePost(post: IUpdatePost) {
+	const hasFileToUpdate = post.file.length > 0;
+	try {
+		let image = {
+			imageUrl: post.imageUrl,
+			imageId: post.imageId,
+		}
+
+		if (hasFileToUpdate) {
+			const uploadedFile = await uploadFile(post.file[0])
+
+			// Upload image
+
+			if (!uploadedFile) throw Error;
+
+			const fileUrl = getFilePreview(uploadedFile.$id);
+
+			if (!fileUrl) {
+				deleteFile(uploadedFile.$id);
+				throw Error;
+			}
+
+			image = { ...image, imageUrl: fileUrl, imageId: uploadedFile.$id }
+		}
+
+		const tags = post.tags?.replace(/ /g,'').split('.') || [];
+
+		const updatedPost = await databases.updateDocument(
+			appwriteConfig.databaseId,
+			appwriteConfig.postsCollectionId,
+			post.postId,
+			{
+				caption: post.caption,
+				imageUrl: image.imageUrl,
+				imageId: image.imageId,
+				location: post.location,
+				tags: tags,
+			}
+		)
+
+		if (!updatedPost) {
+			if (hasFileToUpdate) {
+				await deleteFile(image.imageId);
+			}
+			throw Error;
+		}
+
+		if (hasFileToUpdate) {
+			await deleteFile(post.imageId);
+		}
+
+		return updatedPost;
+
+	} catch (error) {
+		console.log(error);
+	}
+}
+
+export async function deletePost(postId: string, imageId: string) {
+	if (!postId || !imageId) throw Error;
+
+	try {
+		const statusCode = await databases.deleteDocument(
+			appwriteConfig.databaseId,
+			appwriteConfig.postsCollectionId,
+			postId
+		)
+
+		if (!statusCode) throw Error;
+
+		await deleteFile(imageId);
+
+		return { status: "Ok" };
+
+	} catch (e) {
+		console.log(e);
+	}
+
 }
