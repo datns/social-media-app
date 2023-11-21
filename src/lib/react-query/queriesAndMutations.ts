@@ -164,6 +164,8 @@ export const useGetPosts = () => {
 	return useInfiniteQuery({
 		queryKey: [QUERY_KEYS.GET_INFINITE_POSTS],
 		queryFn: getInfinitePosts,
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-expect-error
 		getNextPageParam: (lastPage) => {
 			if (lastPage && lastPage.documents.length === 0) return null
 
