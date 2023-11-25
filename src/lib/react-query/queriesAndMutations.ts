@@ -14,7 +14,7 @@ import {
 	updatePost,
 	deletePost,
 	getInfinitePosts,
-	searchPost
+	searchPost, getInfiniteUsers, getSavedPost, getUserById
 } from "@/lib/appwrite/api.ts";
 import {QUERY_KEYS} from "@/lib/react-query/queryKey.ts";
 
@@ -115,6 +115,9 @@ export const useDeleteSavedPost = () => {
 			queryClient.invalidateQueries({
 				queryKey: [QUERY_KEYS.GET_CURRENT_USER]
 			})
+			queryClient.invalidateQueries({
+				queryKey: [QUERY_KEYS.GET_SAVED_POSTS]
+			})
 		}
 	})
 }
@@ -184,4 +187,33 @@ export const useSearchPosts = (searchTerm: string) => {
 	})
 }
 
+export const useGetUsers = () => {
+	return useInfiniteQuery({
+		queryKey: [QUERY_KEYS.GET_USERS],
+		queryFn: getInfiniteUsers,
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-expect-error
+		getNextPageParam: (lastPage) => {
+			if (lastPage && lastPage.documents.length === 0) return null
 
+			const lastId = lastPage?.documents[lastPage?.documents.length - 1].$id
+
+			return lastId
+		}
+	})
+}
+
+export const useGetSavedPost = (userId: string) => {
+	return useQuery({
+		queryKey: [QUERY_KEYS.GET_SAVED_POSTS],
+		queryFn: () => getSavedPost(userId),
+	})
+}
+
+export const useGetUserById = (userId: string) => {
+	return useQuery({
+		queryKey: [QUERY_KEYS.GET_USER_BY_ID, userId],
+		queryFn: () => getUserById(userId),
+		enabled: !!userId,
+	})
+}

@@ -63,6 +63,44 @@ export async function signOutAccount() {
 	}
 }
 
+
+export async function uploadFile(file: File) {
+	try {
+		const uploadedFile = await storage.createFile(appwriteConfig.storageId, ID.unique(), file);
+
+		return uploadedFile;
+	} catch (e) {
+		console.log(e)
+	}
+}
+
+export function getFilePreview(fileId: string) {
+	try {
+		const fileUrl = storage.getFilePreview(
+			appwriteConfig.storageId,
+			fileId,
+			2000,
+			2000,
+			"top",
+			100
+		)
+
+		return fileUrl;
+	} catch (e) {
+		console.log(e);
+	}
+}
+
+export async function deleteFile(filedId: string) {
+	try {
+		await storage.deleteFile(appwriteConfig.storageId, filedId);
+		return { status : 'ok' }
+	} catch (e) {
+		console.log(e);
+	}
+}
+
+// =========================== USER ===========================
 export async function getCurrentUser() {
 	try {
 		const currentAccount = await account.get();
@@ -83,7 +121,44 @@ export async function getCurrentUser() {
 	}
 }
 
+export async function getInfiniteUsers({pageParam} : { pageParam: number}) {
+	const queries: string[] = [Query.orderDesc('$createdAt'), Query.limit(10)]
 
+	if (pageParam) {
+		queries.push(Query.cursorAfter(pageParam.toString()))
+	}
+
+	try {
+		const users = await databases.listDocuments(
+			appwriteConfig.databaseId,
+			appwriteConfig.usersCollectionId,
+			queries
+		)
+
+		if (!users) throw Error;
+
+		return users;
+	} catch (e) {
+		console.log(e);
+	}
+}
+
+export async function getUserById(userId: string) {
+	try {
+		const user = await databases.getDocument(
+			appwriteConfig.databaseId,
+			appwriteConfig.usersCollectionId,
+			userId
+		);
+
+		if (!user) throw Error;
+
+		return user;
+	} catch (e) {
+		console.log(e);
+	}
+}
+// =========================== POST ===========================
 export async function createPost(post: INewPost) {
 	try {
 		// Upload image
@@ -122,41 +197,6 @@ export async function createPost(post: INewPost) {
 
 	} catch (error) {
 		console.log(error);
-	}
-}
-
-export async function uploadFile(file: File) {
-	try {
-		const uploadedFile = await storage.createFile(appwriteConfig.storageId, ID.unique(), file);
-
-		return uploadedFile;
-	} catch (e) {
-		console.log(e)
-	}
-}
-
-export function getFilePreview(fileId: string) {
-	try {
-		const fileUrl = storage.getFilePreview(
-			appwriteConfig.storageId,
-			fileId,
-			2000,
-			2000,
-			"top",
-			100
-		)
-
-		return fileUrl;
-	} catch (e) {
-		console.log(e);
-	}
-}
-export async function deleteFile(filedId: string) {
-	try {
-		await storage.deleteFile(appwriteConfig.storageId, filedId);
-		return { status : 'ok' }
-	} catch (e) {
-		console.log(e);
 	}
 }
 
@@ -354,6 +394,22 @@ export async function searchPost(searchTerm: string) {
 		if (!posts) throw Error;
 
 		return posts;
+	} catch (e) {
+		console.log(e);
+	}
+}
+
+export async function  getSavedPost(userId: string) {
+	try {
+		const savedPosts = await databases.listDocuments(
+			appwriteConfig.databaseId,
+			appwriteConfig.savesCollectionId,
+			[
+				Query.equal('user', [userId])
+			]
+		)
+
+		return savedPosts
 	} catch (e) {
 		console.log(e);
 	}

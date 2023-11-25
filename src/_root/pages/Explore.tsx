@@ -28,7 +28,6 @@ const Explore = () => {
 	const shouldShowSearchResults = searchValue !== '';
 	const shouldShowPosts = !shouldShowSearchResults && posts?.pages.every(item => item?.documents.length === 0);
 
-	console.log('posts', posts)
 	return (
 		<div className="explore-container">
 			<div className="explore-inner_container">

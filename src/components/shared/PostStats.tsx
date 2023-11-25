@@ -1,5 +1,5 @@
 import {Models} from "appwrite";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {
 	useDeleteSavedPost,
 	useGetCurrentUser,
@@ -26,6 +26,13 @@ const PostStats: React.FC<PostStatsProps> = ({ post, userId }) => {
 
 	const { data: currentUser } = useGetCurrentUser();
 
+
+	const savedPostRecord = currentUser?.save.find((record: Models.Document) => record.post.$id === post?.$id)
+
+	useEffect(() => {
+		setIsSaved(!!savedPostRecord);
+	}, [currentUser]);
+
 	const handleLikePost = (e: React.MouseEvent) => {
 		e.stopPropagation();
 
@@ -43,9 +50,6 @@ const PostStats: React.FC<PostStatsProps> = ({ post, userId }) => {
 
 	const handleSavePost = (e: React.MouseEvent) => {
 		e.stopPropagation();
-
-		const savedPostRecord = currentUser?.save.find((record: Models.Document) => record.$id === post?.$id)
-
 
 		if (savedPostRecord) {
 			setIsSaved(false)

@@ -10,6 +10,7 @@ type GridPostListProps = {
 }
 
 const GridPostList = ({ posts, showStats = true, showUser = true }: GridPostListProps) => {
+	console.log('posts', posts);
 	const { user } = useUserContext();
 
 	if (!posts) return null;
