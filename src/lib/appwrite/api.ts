@@ -1,4 +1,4 @@
-import {INewPost, INewUser, IUpdatePost} from "@/types";
+import {INewPost, INewUser, IUpdatePost, IUpdateUser} from "@/types";
 import {account, appwriteConfig, avatars, databases, storage} from "@/lib/appwrite/config.ts";
 import {ID, Query} from "appwrite";
 
@@ -45,7 +45,7 @@ export async function saveUserToDB(user: {
 	}
 }
 
-export async function signInAccount(user: { email: string; password: string}) {
+export async function signInAccount(user: { email: string; password: string }) {
 	try {
 		const session = await account.createEmailSession(user.email, user.password);
 		return session;
@@ -94,7 +94,7 @@ export function getFilePreview(fileId: string) {
 export async function deleteFile(filedId: string) {
 	try {
 		await storage.deleteFile(appwriteConfig.storageId, filedId);
-		return { status : 'ok' }
+		return {status: 'ok'}
 	} catch (e) {
 		console.log(e);
 	}
@@ -121,7 +121,7 @@ export async function getCurrentUser() {
 	}
 }
 
-export async function getInfiniteUsers({pageParam} : { pageParam: number}) {
+export async function getInfiniteUsers({pageParam}: { pageParam: number }) {
 	const queries: string[] = [Query.orderDesc('$createdAt'), Query.limit(10)]
 
 	if (pageParam) {
@@ -158,6 +158,7 @@ export async function getUserById(userId: string) {
 		console.log(e);
 	}
 }
+
 // =========================== POST ===========================
 export async function createPost(post: INewPost) {
 	try {
@@ -173,7 +174,7 @@ export async function createPost(post: INewPost) {
 			throw Error;
 		}
 
-		const tags = post.tags?.replace(/ /g,'').split('.') || [];
+		const tags = post.tags?.replace(/ /g, '').split('.') || [];
 
 		const newPost = await databases.createDocument(
 			appwriteConfig.databaseId,
@@ -261,7 +262,7 @@ export async function deleteSavedPost(savedRecordId: string) {
 
 		if (!statusCode) throw Error;
 
-		return { status: 'ok' }
+		return {status: 'ok'}
 	} catch (e) {
 		console.log(e)
 	}
@@ -303,10 +304,10 @@ export async function updatePost(post: IUpdatePost) {
 				throw Error;
 			}
 
-			image = { ...image, imageUrl: fileUrl, imageId: uploadedFile.$id }
+			image = {...image, imageUrl: fileUrl, imageId: uploadedFile.$id}
 		}
 
-		const tags = post.tags?.replace(/ /g,'').split('.') || [];
+		const tags = post.tags?.replace(/ /g, '').split('.') || [];
 
 		const updatedPost = await databases.updateDocument(
 			appwriteConfig.databaseId,
@@ -353,7 +354,7 @@ export async function deletePost(postId: string, imageId: string) {
 
 		await deleteFile(imageId);
 
-		return { status: "Ok" };
+		return {status: "Ok"};
 
 	} catch (e) {
 		console.log(e);
@@ -361,7 +362,7 @@ export async function deletePost(postId: string, imageId: string) {
 
 }
 
-export async function getInfinitePosts({pageParam} : { pageParam: number}) {
+export async function getInfinitePosts({pageParam}: { pageParam: number }) {
 	const queries: string[] = [Query.orderDesc('$updatedAt'), Query.limit(10)]
 
 	if (pageParam) {
@@ -399,7 +400,7 @@ export async function searchPost(searchTerm: string) {
 	}
 }
 
-export async function  getSavedPost(userId: string) {
+export async function getSavedPost(userId: string) {
 	try {
 		const savedPosts = await databases.listDocuments(
 			appwriteConfig.databaseId,
@@ -410,6 +411,57 @@ export async function  getSavedPost(userId: string) {
 		)
 
 		return savedPosts
+	} catch (e) {
+		console.log(e);
+	}
+}
+
+export async function updateUser(user: IUpdateUser) {
+	const hasFileToUpdate = user.file.length > 0;
+	try {
+		let image = {
+			imageUrl: user.imageUrl,
+			imageId: user.imageId,
+		};
+
+		if (hasFileToUpdate) {
+			const uploadedFile = await uploadFile(user.file[0]);
+			if (!uploadedFile) throw Error;
+
+			const fileUrl = getFilePreview(uploadedFile.$id);
+			if (!fileUrl) {
+				await deleteFile(uploadedFile.$id);
+				throw Error;
+			}
+
+			image = { ...image, imageUrl: fileUrl, imageId: uploadedFile.$id }
+		}
+
+		const updateUser = await databases.updateDocument(
+			appwriteConfig.databaseId,
+			appwriteConfig.usersCollectionId,
+			user.userId,
+			{
+				name: user.name,
+				bio: user.bio,
+				imageUrl: image.imageUrl,
+				imageId: image.imageId
+			}
+		);
+
+		if (!updateUser) {
+			if (hasFileToUpdate) {
+				await deleteFile(image.imageId);
+			}
+
+			throw Error;
+		}
+
+		if (user.imageId && hasFileToUpdate) {
+			await deleteFile(user.imageId);
+		}
+
+		return updateUser;
 	} catch (e) {
 		console.log(e);
 	}
